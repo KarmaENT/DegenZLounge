@@ -1,0 +1,124 @@
+**DeGeNz Lounge - Advanced Development Blueprint**  
+
+### **1. Core Architecture**  
+**Frontend:**  
+- **Framework:** React.js + TypeScript  
+- **UI Library:** Tailwind CSS + ShadCN for accessible components  
+- **State Management:** Zustand (lightweight) + React Query (API caching)  
+- **Real-Time:** Socket.IO for agent messaging  
+
+**Backend:**  
+- **Framework:** FastAPI (Python)  
+- **Database:** PostgreSQL (Supabase) for relational data + Redis for session caching  
+- **AI Orchestration:** LangChain + Gemini Flash 2.0 (default)  
+- **Auth:** Supabase Auth (OAuth/JWT)  
+
+**Infrastructure:**  
+- **Deployment:** Docker + Kubernetes (GCP)  
+- **CI/CD:** GitHub Actions (auto-deploy on `main` push)  
+- **Monitoring:** Prometheus + Grafana  
+
+---
+
+### **2. AI Agent System**  
+**Agent Definition Schema (JSON):**  
+```json
+{
+  "id": "agent_123",
+  "name": "Data Scientist",
+  "role": "Analyze datasets",
+  "personality": "Technical/Precise",
+  "system_instructions": "Use Markdown for code. Cite sources.",
+  "examples": [
+    {"input": "Clean this CSV", "output": "```python\nimport pandas as pd..."}
+  ],
+  "workflows": ["data_analysis"]
+}
+```
+
+**Manager Agent Logic:**  
+- Uses **LangChain's AgentExecutor** to:  
+  1. Route tasks based on agent roles  
+  2. Score responses (fact-check via Gemini)  
+  3. Mediate conflicts (vote or user override)  
+
+**RAG Pipeline:**  
+- Ingest user docs (PDFs/URLs) → **ChromaDB vector store** → Augment agent responses  
+
+---
+
+### **3. Key Components**  
+
+#### **A. Agent Library (Frontend)**  
+- **Components:**  
+  - `AgentCard.tsx`: Drag-and-drop with react-dnd  
+  - `AgentCreatorModal.tsx`: Form with role/personality dropdowns  
+- **Features:**  
+  - Search/filter by tags (e.g., `#marketing`, `#python`)  
+  - Import/export agents as JSON  
+
+#### **B. Sandbox Workspace**  
+- **Real-Time Chat:**  
+  - Each agent has a dedicated **WebSocket channel**  
+  - Messages tagged with `@agent` and colored by role  
+- **Manager Panel:**  
+  - Auto-suggests task delegation (e.g., "Researcher free? Assign literature review")  
+
+#### **C. Persona Mode**  
+- Overrides Gemini’s base behavior using:  
+  ```python
+  def apply_persona(base_response: str, agent: Agent) -> str:
+      return f"{agent.name} ({agent.role}): {base_response}"
+  ```
+
+---
+
+### **4. APIs**  
+| Endpoint | Method | Description |  
+|----------|--------|-------------|  
+| `/agents` | POST | Create new agent |  
+| `/sandbox/start` | GET | Init multi-agent session |  
+| `/sandbox/chat` | WS | Real-time agent messaging |  
+| `/rag/upload` | POST | Ingest docs for agent memory |  
+
+---
+
+### **5. Security**  
+- **Rate Limiting:** 10 requests/sec (FastAPI’s `slowapi`)  
+- **Data Isolation:** Row-level security (Supabase)  
+- **Audit Logs:** Track agent edits/usage  
+
+---
+
+### **6. Testing Plan**  
+**Unit Tests:**  
+- `test_manager_agent.py`: Verify task delegation logic  
+- `test_conflict_resolution.py`: Check debate scoring  
+
+**User Testing:**  
+1. **Scenario 1:** Build a marketing plan (3 agents)  
+2. **Scenario 2:** Debug Python code (Developer + Tester agents)  
+
+---
+
+### **7. Deployment**  
+```mermaid
+graph TD
+    A[GitHub] -->|on push| B[Build Docker image]
+    B --> C[Deploy to GCP Kubernetes]
+    C --> D[Auto-scale pods]
+```
+
+**Deliverables:**  
+- Fully documented API (Swagger/Postman)  
+- Terraform scripts for infra  
+- User guide (video + GIF examples)  
+
+--- 
+
+**Why This Works:**  
+- **Modular:** Swap Gemini for GPT-4 via config.  
+- **Scalable:** Kubernetes handles 1000+ concurrent sandboxes.  
+- **User-Centric:** Persona mode bridges custom agents + base AI.  
+
+Ready to code? Let’s prioritize components.

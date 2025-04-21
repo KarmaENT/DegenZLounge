@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:14
+    container_name: degenz-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-degenz}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-degenzpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-degenzdb}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U degenz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - degenz-network
+
+  # Flask Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: degenz-backend
+    environment:
+      - FLASK_APP=run.py
+      - FLASK_ENV=${FLASK_ENV:-production}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-degenz}:${POSTGRES_PASSWORD:-degenzpassword}@postgres:5432/${POSTGRES_DB:-degenzdb}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY:-}
+      - GROK_API_KEY=${GROK_API_KEY:-}
+      - OLLAMA_URL=${OLLAMA_URL:-http://ollama:11434}
+    volumes:
+      - ./backend:/app
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - degenz-network
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend/degenz-frontend
+      dockerfile: Dockerfile
+    container_name: degenz-frontend
+    environment:
+      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:5000}
+    volumes:
+      - ./frontend/degenz-frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - degenz-network
+
+  # Ollama (optional, for local model hosting)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: degenz-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+    networks:
+      - degenz-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+volumes:
+  postgres_data:
+  ollama_data:
+
+networks:
+  degenz-network:
+    driver: bridge
