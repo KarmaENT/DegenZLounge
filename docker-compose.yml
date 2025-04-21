@@ -30,7 +30,7 @@ services:
     container_name: degenz-backend
     environment:
       - FLASK_APP=run.py
-      - FLASK_ENV=${FLASK_ENV:-production}
+      - FLASK_ENV=${FLASK_ENV:-development}
       - DATABASE_URL=postgresql://${POSTGRES_USER:-degenz}:${POSTGRES_PASSWORD:-degenzpassword}@postgres:5432/${POSTGRES_DB:-degenzdb}
       - SECRET_KEY=${SECRET_KEY:-your-secret-key}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
